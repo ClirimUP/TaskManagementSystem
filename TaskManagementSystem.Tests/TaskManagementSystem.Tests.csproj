@@ -23,7 +23,6 @@
         <ProjectReference Include="..\TaskManagementSystem.Domain\TaskManagementSystem.Domain.csproj" />
         <ProjectReference Include="..\TaskManagementSystem.Infrastructure\TaskManagementSystem.Infrastructure.csproj" />
         <ProjectReference Include="..\TaskManagementSystem.Features\TaskManagementSystem.Features.csproj" />
-        <ProjectReference Include="..\TaskManagementSystem.Api\TaskManagementSystem.Api.csproj" />
     </ItemGroup>
 
 </Project>

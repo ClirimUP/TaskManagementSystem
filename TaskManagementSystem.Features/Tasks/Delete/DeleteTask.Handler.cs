@@ -5,8 +5,6 @@ using TaskManagementSystem.Infrastructure.Persistence;
 
 namespace TaskManagementSystem.Features.Tasks.Delete;
 
-public record DeleteTaskCommand(Guid Id) : IRequest<Result>;
-
 public class DeleteTaskHandler : IRequestHandler<DeleteTaskCommand, Result>
 {
     private readonly AppDbContext _db;

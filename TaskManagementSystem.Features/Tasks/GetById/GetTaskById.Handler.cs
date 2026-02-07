@@ -6,8 +6,6 @@ using TaskManagementSystem.Infrastructure.Persistence;
 
 namespace TaskManagementSystem.Features.Tasks.GetById;
 
-public record GetTaskByIdQuery(Guid Id) : IRequest<Result<TaskResponse>>;
-
 public class GetTaskByIdHandler : IRequestHandler<GetTaskByIdQuery, Result<TaskResponse>>
 {
     private readonly AppDbContext _db;

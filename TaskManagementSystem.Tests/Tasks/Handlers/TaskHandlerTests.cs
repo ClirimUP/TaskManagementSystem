@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementSystem.Domain.Tasks;
 using Xunit;
+using TaskManagementSystem.Features.Tasks.Common;
 using TaskManagementSystem.Features.Tasks.Create;
 using TaskManagementSystem.Features.Tasks.Delete;
 using TaskManagementSystem.Features.Tasks.GetById;
@@ -51,13 +52,13 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTask_WithValidData_ReturnsSuccess()
     {
         var handler = new CreateTaskHandler(_db);
-        var command = new CreateTaskCommand("New Task", "A description", "High", DateTime.UtcNow.AddDays(5));
+        var command = new CreateTaskCommand("New Task", "A description", Priority.High, DateTime.UtcNow.AddDays(5));
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.Title.Should().Be("New Task");
-        result.Value.Priority.Should().Be("High");
+        result.Value.Priority.Should().Be(Priority.High);
     }
 
     [Fact]
@@ -69,14 +70,14 @@ public class TaskHandlerTests : IDisposable
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value!.Priority.Should().Be("Medium");
+        result.Value!.Priority.Should().Be(Priority.Medium);
     }
 
     [Fact]
     public async Task CreateTask_PersistsToDatabase()
     {
         var handler = new CreateTaskHandler(_db);
-        var command = new CreateTaskCommand("Persisted Task", "desc", "Low", null);
+        var command = new CreateTaskCommand("Persisted Task", "desc", Priority.Low, null);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -114,7 +115,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_InvalidPriority_Fails()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("Valid Title", null, "Invalid", null);
+        var command = new CreateTaskCommand("Valid Title", null, (Priority)999, null);
 
         var result = await validator.ValidateAsync(command);
 
@@ -126,7 +127,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_ValidCommand_Passes()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("Valid Title", "Description", "High", DateTime.UtcNow);
+        var command = new CreateTaskCommand("Valid Title", "Description", Priority.High, DateTime.UtcNow);
 
         var result = await validator.ValidateAsync(command);
 
@@ -180,7 +181,7 @@ public class TaskHandlerTests : IDisposable
         await SeedTask("Completed Task", isCompleted: true);
         var handler = new ListTasksHandler(_db);
 
-        var result = await handler.Handle(new ListTasksQuery("active"), CancellationToken.None);
+        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Active), CancellationToken.None);
 
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Active Task");
@@ -193,7 +194,7 @@ public class TaskHandlerTests : IDisposable
         await SeedTask("Completed Task", isCompleted: true);
         var handler = new ListTasksHandler(_db);
 
-        var result = await handler.Handle(new ListTasksQuery("completed"), CancellationToken.None);
+        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Completed), CancellationToken.None);
 
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Completed Task");
@@ -206,13 +207,13 @@ public class TaskHandlerTests : IDisposable
     {
         var seeded = await SeedTask();
         var handler = new UpdateTaskHandler(_db);
-        var command = new UpdateTaskCommand(seeded.Id, "Updated Title", "Updated Desc", "High", null);
+        var command = new UpdateTaskCommand(seeded.Id, "Updated Title", "Updated Desc", Priority.High, null);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.Title.Should().Be("Updated Title");
-        result.Value.Priority.Should().Be("High");
+        result.Value.Priority.Should().Be(Priority.High);
     }
 
     [Fact]
@@ -237,7 +238,7 @@ public class TaskHandlerTests : IDisposable
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value!.Priority.Should().Be("High");
+        result.Value!.Priority.Should().Be(Priority.High);
     }
 
     // ─── SetTaskCompletion ───────────────────────────────────────

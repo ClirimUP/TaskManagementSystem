@@ -5,8 +5,6 @@ using TaskManagementSystem.Infrastructure.Persistence;
 
 namespace TaskManagementSystem.Features.Tasks.List;
 
-public record ListTasksQuery(string? Status) : IRequest<List<TaskResponse>>;
-
 public class ListTasksHandler : IRequestHandler<ListTasksQuery, List<TaskResponse>>
 {
     private readonly AppDbContext _db;
@@ -17,11 +15,11 @@ public class ListTasksHandler : IRequestHandler<ListTasksQuery, List<TaskRespons
     {
         var query = _db.Tasks.AsNoTracking().AsQueryable();
 
-        query = request.Status?.ToLowerInvariant() switch
+        query = request.Status switch
         {
-            "active" => query.Where(t => !t.IsCompleted),
-            "completed" => query.Where(t => t.IsCompleted),
-            _ => query // "all" or null — return everything
+            TaskStatusFilter.Active => query.Where(t => !t.IsCompleted),
+            TaskStatusFilter.Completed => query.Where(t => t.IsCompleted),
+            _ => query
         };
 
         var tasks = await query

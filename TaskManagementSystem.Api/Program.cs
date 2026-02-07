@@ -1,12 +1,18 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using TaskManagementSystem.Api;
 using TaskManagementSystem.Api.Middleware;
 using TaskManagementSystem.Features.Common;
 using TaskManagementSystem.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ----- JSON -----
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // ----- Database -----
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -22,9 +28,6 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 // ----- FluentValidation -----
 builder.Services.AddValidatorsFromAssembly(typeof(ValidationBehavior<,>).Assembly);
-
-// ----- Controllers -----
-builder.Services.AddControllers();
 
 // ----- Swagger / OpenAPI -----
 builder.Services.AddEndpointsApiExplorer();
@@ -79,6 +82,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-app.MapControllers();
+app.MapTasksEndpoints();
 
 app.Run();

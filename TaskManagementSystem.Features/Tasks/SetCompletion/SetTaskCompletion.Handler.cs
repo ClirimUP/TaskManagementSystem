@@ -1,4 +1,3 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementSystem.Domain.Common;
@@ -6,17 +5,6 @@ using TaskManagementSystem.Features.Tasks.Common;
 using TaskManagementSystem.Infrastructure.Persistence;
 
 namespace TaskManagementSystem.Features.Tasks.SetCompletion;
-
-public record SetTaskCompletionCommand(Guid Id, bool IsCompleted) : IRequest<Result<TaskResponse>>;
-
-public class SetTaskCompletionValidator : AbstractValidator<SetTaskCompletionCommand>
-{
-    public SetTaskCompletionValidator()
-    {
-        RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Task ID is required.");
-    }
-}
 
 public class SetTaskCompletionHandler : IRequestHandler<SetTaskCompletionCommand, Result<TaskResponse>>
 {
