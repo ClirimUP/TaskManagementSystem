@@ -1,6 +1,63 @@
+# ----- Build output -----
 bin/
 obj/
-/packages/
+out/
+publish/
+packages/
+
+# ----- User / IDE settings -----
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+
+# JetBrains Rider / ReSharper
+.idea/
+*.sln.iml
 riderModule.iml
-/_ReSharper.Caches/
+_ReSharper.Caches/
+*.DotSettings.user
+
+# VS Code
+.vscode/
+
+# ----- NuGet -----
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# ----- Secrets & credentials -----
+*.pfx
+*.key
+*.pem
+*.p12
+appsettings.Local.json
+appsettings.Production.json
+.env
+.env.*
+
+# ----- Database -----
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+
+# ----- OS files -----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ----- Test results -----
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# ----- Misc -----
 tmpclaude-*
+*.log
