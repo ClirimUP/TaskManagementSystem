@@ -28,5 +28,8 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
 
         builder.Property(t => t.UpdatedAt)
             .IsRequired();
+
+        builder.HasIndex(t => new { t.IsCompleted, t.CreatedAt })
+            .HasDatabaseName("IX_Tasks_IsCompleted_CreatedAt");
     }
 }

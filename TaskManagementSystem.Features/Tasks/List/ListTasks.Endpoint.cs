@@ -17,7 +17,7 @@ public static class ListTasksEndpoint
         })
         .WithName("ListTasks")
         .WithSummary("List all tasks")
-        .WithDescription("Retrieves all tasks, optionally filtered by completion status.")
+        .WithDescription("Retrieves all tasks, optionally filtered by completion status. Results are sorted by creation date (newest first).")
         .Produces<List<TaskResponse>>()
         .WithOpenApi();
 
