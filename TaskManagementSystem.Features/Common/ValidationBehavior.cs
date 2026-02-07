@@ -39,7 +39,6 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
 
         var errorMessage = string.Join("; ", failures.Select(f => f.ErrorMessage));
 
-        // Handle Result<T> responses
         if (typeof(TResponse).IsGenericType &&
             typeof(TResponse).GetGenericTypeDefinition() == typeof(Result<>))
         {
@@ -48,7 +47,6 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
             return (TResponse)failureMethod.Invoke(null, new object[] { Error.Validation(errorMessage) })!;
         }
 
-        // Handle plain Result responses
         if (typeof(TResponse) == typeof(Result))
         {
             return (TResponse)(object)Result.Failure(Error.Validation(errorMessage));
