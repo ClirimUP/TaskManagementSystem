@@ -4,4 +4,4 @@ using TaskManagementSystem.Features.Tasks.Common;
 
 namespace TaskManagementSystem.Features.Tasks.GetById;
 
-public record GetTaskByIdQuery(Guid Id) : IRequest<Result<TaskResponse>>;
+public record GetTaskByIdQuery(Guid Id, Guid UserId) : IRequest<Result<TaskResponse>>;

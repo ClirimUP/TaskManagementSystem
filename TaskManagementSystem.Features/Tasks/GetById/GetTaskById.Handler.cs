@@ -16,7 +16,7 @@ public class GetTaskByIdHandler : IRequestHandler<GetTaskByIdQuery, Result<TaskR
     {
         var task = await _db.Tasks
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == request.Id && t.UserId == request.UserId, cancellationToken);
 
         if (task is null)
             return Result<TaskResponse>.Failure(Error.NotFound($"Task with ID '{request.Id}' was not found."));

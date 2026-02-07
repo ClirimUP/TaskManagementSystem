@@ -12,7 +12,8 @@ public static class TasksEndpoints
     public static WebApplication MapTasksEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/tasks")
-            .WithTags("Tasks");
+            .WithTags("Tasks")
+            .RequireAuthorization();
 
         group
             .MapListTasks()

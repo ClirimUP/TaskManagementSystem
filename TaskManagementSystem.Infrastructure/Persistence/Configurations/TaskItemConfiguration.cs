@@ -31,5 +31,14 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
 
         builder.HasIndex(t => new { t.IsCompleted, t.CreatedAt })
             .HasDatabaseName("IX_Tasks_IsCompleted_CreatedAt");
+
+        builder.HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        builder.HasIndex(t => t.UserId)
+            .HasDatabaseName("IX_Tasks_UserId");
     }
 }

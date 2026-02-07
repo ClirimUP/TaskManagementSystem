@@ -49,6 +49,16 @@ public class ResultExtensionsTests
     }
 
     [Fact]
+    public void ToProblem_UnauthorizedError_ReturnsResult()
+    {
+        var result = Result.Failure(Error.Unauthorized("Not allowed"));
+
+        var httpResult = result.ToProblem();
+
+        httpResult.Should().NotBeNull();
+    }
+
+    [Fact]
     public void ToProblem_GenericResultFailure_ReturnsResult()
     {
         var result = Result<TaskResponse>.Failure(Error.NotFound("Not found"));

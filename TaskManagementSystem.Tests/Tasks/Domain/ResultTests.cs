@@ -91,4 +91,13 @@ public class ErrorTests
         error.Code.Should().Be("Unexpected");
         error.Message.Should().Be("Something went wrong");
     }
+
+    [Fact]
+    public void Unauthorized_CreatesErrorWithUnauthorizedCode()
+    {
+        var error = Error.Unauthorized("Not allowed");
+
+        error.Code.Should().Be("Unauthorized");
+        error.Message.Should().Be("Not allowed");
+    }
 }

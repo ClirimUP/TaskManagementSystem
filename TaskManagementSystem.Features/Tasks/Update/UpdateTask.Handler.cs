@@ -14,7 +14,7 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskCommand, Result<TaskR
 
     public async Task<Result<TaskResponse>> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == request.Id && t.UserId == request.UserId, cancellationToken);
 
         if (task is null)
             return Result<TaskResponse>.Failure(Error.NotFound($"Task with ID '{request.Id}' was not found."));

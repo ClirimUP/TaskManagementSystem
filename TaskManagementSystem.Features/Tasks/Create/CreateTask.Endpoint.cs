@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,8 +12,10 @@ public static class CreateTaskEndpoint
 {
     public static RouteGroupBuilder MapCreateTask(this RouteGroupBuilder group)
     {
-        group.MapPost("/", async (CreateTaskCommand command, IMediator mediator, CancellationToken ct) =>
+        group.MapPost("/", async (CreateTaskRequest request, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var command = new CreateTaskCommand(request.Title, request.Description, request.Priority, request.DueDate, userId);
             var result = await mediator.Send(command, ct);
 
             return result.IsSuccess

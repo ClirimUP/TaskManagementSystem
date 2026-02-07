@@ -16,6 +16,7 @@ namespace TaskManagementSystem.Tests.Tasks.Handlers;
 public class TaskHandlerTests : IDisposable
 {
     private readonly AppDbContext _db;
+    private readonly Guid _userId = Guid.NewGuid();
 
     public TaskHandlerTests()
     {
@@ -28,7 +29,7 @@ public class TaskHandlerTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 
-    private async Task<TaskItem> SeedTask(string title = "Test Task", Priority priority = Priority.Medium, bool isCompleted = false)
+    private async Task<TaskItem> SeedTask(string title = "Test Task", Priority priority = Priority.Medium, bool isCompleted = false, Guid? userId = null)
     {
         var task = new TaskItem
         {
@@ -39,7 +40,8 @@ public class TaskHandlerTests : IDisposable
             Priority = priority,
             DueDate = DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            UserId = userId ?? _userId
         };
         _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
@@ -52,7 +54,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTask_WithValidData_ReturnsSuccess()
     {
         var handler = new CreateTaskHandler(_db);
-        var command = new CreateTaskCommand("New Task", "A description", Priority.High, DateTime.UtcNow.AddDays(5));
+        var command = new CreateTaskCommand("New Task", "A description", Priority.High, DateTime.UtcNow.AddDays(5), _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -65,7 +67,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTask_WithNullPriority_DefaultsToMedium()
     {
         var handler = new CreateTaskHandler(_db);
-        var command = new CreateTaskCommand("Another Task", null, null, null);
+        var command = new CreateTaskCommand("Another Task", null, null, null, _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -77,7 +79,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTask_PersistsToDatabase()
     {
         var handler = new CreateTaskHandler(_db);
-        var command = new CreateTaskCommand("Persisted Task", "desc", Priority.Low, null);
+        var command = new CreateTaskCommand("Persisted Task", "desc", Priority.Low, null, _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -92,7 +94,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_EmptyTitle_Fails()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("", null, null, null);
+        var command = new CreateTaskCommand("", null, null, null, _userId);
 
         var result = await validator.ValidateAsync(command);
 
@@ -104,7 +106,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_TitleTooShort_Fails()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("Ab", null, null, null);
+        var command = new CreateTaskCommand("Ab", null, null, null, _userId);
 
         var result = await validator.ValidateAsync(command);
 
@@ -115,7 +117,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_InvalidPriority_Fails()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("Valid Title", null, (Priority)999, null);
+        var command = new CreateTaskCommand("Valid Title", null, (Priority)999, null, _userId);
 
         var result = await validator.ValidateAsync(command);
 
@@ -127,7 +129,7 @@ public class TaskHandlerTests : IDisposable
     public async Task CreateTaskValidator_ValidCommand_Passes()
     {
         var validator = new CreateTaskValidator();
-        var command = new CreateTaskCommand("Valid Title", "Description", Priority.High, DateTime.UtcNow);
+        var command = new CreateTaskCommand("Valid Title", "Description", Priority.High, DateTime.UtcNow, _userId);
 
         var result = await validator.ValidateAsync(command);
 
@@ -142,7 +144,7 @@ public class TaskHandlerTests : IDisposable
         var seeded = await SeedTask();
         var handler = new GetTaskByIdHandler(_db);
 
-        var result = await handler.Handle(new GetTaskByIdQuery(seeded.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetTaskByIdQuery(seeded.Id, _userId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.Id.Should().Be(seeded.Id);
@@ -154,7 +156,20 @@ public class TaskHandlerTests : IDisposable
     {
         var handler = new GetTaskByIdHandler(_db);
 
-        var result = await handler.Handle(new GetTaskByIdQuery(Guid.NewGuid()), CancellationToken.None);
+        var result = await handler.Handle(new GetTaskByIdQuery(Guid.NewGuid(), _userId), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("NotFound");
+    }
+
+    [Fact]
+    public async Task GetTaskById_DifferentUser_ReturnsNotFound()
+    {
+        var seeded = await SeedTask();
+        var handler = new GetTaskByIdHandler(_db);
+        var otherUserId = Guid.NewGuid();
+
+        var result = await handler.Handle(new GetTaskByIdQuery(seeded.Id, otherUserId), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("NotFound");
@@ -169,7 +184,7 @@ public class TaskHandlerTests : IDisposable
         await SeedTask("Task 2", isCompleted: true);
         var handler = new ListTasksHandler(_db);
 
-        var result = await handler.Handle(new ListTasksQuery(null), CancellationToken.None);
+        var result = await handler.Handle(new ListTasksQuery(null, _userId), CancellationToken.None);
 
         result.Should().HaveCount(2);
     }
@@ -181,7 +196,7 @@ public class TaskHandlerTests : IDisposable
         await SeedTask("Completed Task", isCompleted: true);
         var handler = new ListTasksHandler(_db);
 
-        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Active), CancellationToken.None);
+        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Active, _userId), CancellationToken.None);
 
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Active Task");
@@ -194,10 +209,23 @@ public class TaskHandlerTests : IDisposable
         await SeedTask("Completed Task", isCompleted: true);
         var handler = new ListTasksHandler(_db);
 
-        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Completed), CancellationToken.None);
+        var result = await handler.Handle(new ListTasksQuery(TaskStatusFilter.Completed, _userId), CancellationToken.None);
 
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Completed Task");
+    }
+
+    [Fact]
+    public async Task ListTasks_DifferentUser_ReturnsEmpty()
+    {
+        await SeedTask("Task 1");
+        await SeedTask("Task 2");
+        var handler = new ListTasksHandler(_db);
+        var otherUserId = Guid.NewGuid();
+
+        var result = await handler.Handle(new ListTasksQuery(null, otherUserId), CancellationToken.None);
+
+        result.Should().BeEmpty();
     }
 
     // ─── UpdateTask ──────────────────────────────────────────────
@@ -207,7 +235,7 @@ public class TaskHandlerTests : IDisposable
     {
         var seeded = await SeedTask();
         var handler = new UpdateTaskHandler(_db);
-        var command = new UpdateTaskCommand(seeded.Id, "Updated Title", "Updated Desc", Priority.High, null);
+        var command = new UpdateTaskCommand(seeded.Id, "Updated Title", "Updated Desc", Priority.High, null, _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -220,7 +248,7 @@ public class TaskHandlerTests : IDisposable
     public async Task UpdateTask_NonExistingTask_ReturnsNotFound()
     {
         var handler = new UpdateTaskHandler(_db);
-        var command = new UpdateTaskCommand(Guid.NewGuid(), "Title", null, null, null);
+        var command = new UpdateTaskCommand(Guid.NewGuid(), "Title", null, null, null, _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -233,12 +261,26 @@ public class TaskHandlerTests : IDisposable
     {
         var seeded = await SeedTask(priority: Priority.High);
         var handler = new UpdateTaskHandler(_db);
-        var command = new UpdateTaskCommand(seeded.Id, "Updated", null, null, null);
+        var command = new UpdateTaskCommand(seeded.Id, "Updated", null, null, null, _userId);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.Priority.Should().Be(Priority.High);
+    }
+
+    [Fact]
+    public async Task UpdateTask_DifferentUser_ReturnsNotFound()
+    {
+        var seeded = await SeedTask();
+        var handler = new UpdateTaskHandler(_db);
+        var otherUserId = Guid.NewGuid();
+        var command = new UpdateTaskCommand(seeded.Id, "Hacked", null, null, null, otherUserId);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("NotFound");
     }
 
     // ─── SetTaskCompletion ───────────────────────────────────────
@@ -249,7 +291,7 @@ public class TaskHandlerTests : IDisposable
         var seeded = await SeedTask();
         var handler = new SetTaskCompletionHandler(_db);
 
-        var result = await handler.Handle(new SetTaskCompletionCommand(seeded.Id, true), CancellationToken.None);
+        var result = await handler.Handle(new SetTaskCompletionCommand(seeded.Id, true, _userId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.IsCompleted.Should().BeTrue();
@@ -261,7 +303,7 @@ public class TaskHandlerTests : IDisposable
         var seeded = await SeedTask(isCompleted: true);
         var handler = new SetTaskCompletionHandler(_db);
 
-        var result = await handler.Handle(new SetTaskCompletionCommand(seeded.Id, false), CancellationToken.None);
+        var result = await handler.Handle(new SetTaskCompletionCommand(seeded.Id, false, _userId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value!.IsCompleted.Should().BeFalse();
@@ -272,7 +314,20 @@ public class TaskHandlerTests : IDisposable
     {
         var handler = new SetTaskCompletionHandler(_db);
 
-        var result = await handler.Handle(new SetTaskCompletionCommand(Guid.NewGuid(), true), CancellationToken.None);
+        var result = await handler.Handle(new SetTaskCompletionCommand(Guid.NewGuid(), true, _userId), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("NotFound");
+    }
+
+    [Fact]
+    public async Task SetTaskCompletion_DifferentUser_ReturnsNotFound()
+    {
+        var seeded = await SeedTask();
+        var handler = new SetTaskCompletionHandler(_db);
+        var otherUserId = Guid.NewGuid();
+
+        var result = await handler.Handle(new SetTaskCompletionCommand(seeded.Id, true, otherUserId), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("NotFound");
@@ -286,7 +341,7 @@ public class TaskHandlerTests : IDisposable
         var seeded = await SeedTask();
         var handler = new DeleteTaskHandler(_db);
 
-        var result = await handler.Handle(new DeleteTaskCommand(seeded.Id), CancellationToken.None);
+        var result = await handler.Handle(new DeleteTaskCommand(seeded.Id, _userId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -297,7 +352,7 @@ public class TaskHandlerTests : IDisposable
         var seeded = await SeedTask();
         var handler = new DeleteTaskHandler(_db);
 
-        await handler.Handle(new DeleteTaskCommand(seeded.Id), CancellationToken.None);
+        await handler.Handle(new DeleteTaskCommand(seeded.Id, _userId), CancellationToken.None);
 
         var deleted = await _db.Tasks.FindAsync(seeded.Id);
         deleted.Should().BeNull();
@@ -308,7 +363,20 @@ public class TaskHandlerTests : IDisposable
     {
         var handler = new DeleteTaskHandler(_db);
 
-        var result = await handler.Handle(new DeleteTaskCommand(Guid.NewGuid()), CancellationToken.None);
+        var result = await handler.Handle(new DeleteTaskCommand(Guid.NewGuid(), _userId), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("NotFound");
+    }
+
+    [Fact]
+    public async Task DeleteTask_DifferentUser_ReturnsNotFound()
+    {
+        var seeded = await SeedTask();
+        var handler = new DeleteTaskHandler(_db);
+        var otherUserId = Guid.NewGuid();
+
+        var result = await handler.Handle(new DeleteTaskCommand(seeded.Id, otherUserId), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("NotFound");

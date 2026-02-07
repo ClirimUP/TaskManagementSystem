@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -10,14 +11,15 @@ public static class ListTasksEndpoint
 {
     public static RouteGroupBuilder MapListTasks(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (TaskStatusFilter? status, IMediator mediator, CancellationToken ct) =>
+        group.MapGet("/", async (TaskStatusFilter? status, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new ListTasksQuery(status), ct);
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await mediator.Send(new ListTasksQuery(status, userId), ct);
             return Results.Ok(result);
         })
         .WithName("ListTasks")
         .WithSummary("List all tasks")
-        .WithDescription("Retrieves all tasks, optionally filtered by completion status. Results are sorted by creation date (newest first).")
+        .WithDescription("Retrieves all tasks for the authenticated user, optionally filtered by completion status. Results are sorted by creation date (newest first).")
         .Produces<List<TaskResponse>>()
         .WithOpenApi();
 

@@ -1,11 +1,15 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TaskManagementSystem.Api;
 using TaskManagementSystem.Api.Middleware;
 using TaskManagementSystem.Features.Common;
+using TaskManagementSystem.Infrastructure.Auth;
 using TaskManagementSystem.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ----- Configuration validation -----
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var corsOrigin = builder.Configuration.GetValue<string>("Cors:AllowedOrigin");
+var jwtSecret = builder.Configuration.GetValue<string>("Jwt:Secret");
 
 if (builder.Environment.IsDevelopment())
 {
@@ -27,6 +32,12 @@ if (builder.Environment.IsDevelopment())
         corsOrigin = "http://localhost:5173";
         Log.Startup(builder, "Cors:AllowedOrigin is not configured. Using default: \"{Value}\"", corsOrigin);
     }
+
+    if (string.IsNullOrWhiteSpace(jwtSecret))
+    {
+        jwtSecret = "DEV-ONLY-SECRET-KEY-REPLACE-IN-PRODUCTION-MIN-32-CHARS!!";
+        Log.Startup(builder, "Jwt:Secret is not configured. Using development-only key: \"{Value}\"", jwtSecret);
+    }
 }
 else
 {
@@ -35,6 +46,9 @@ else
 
     if (string.IsNullOrWhiteSpace(corsOrigin))
         throw new InvalidOperationException("Cors:AllowedOrigin must be configured for non-Development environments.");
+
+    if (string.IsNullOrWhiteSpace(jwtSecret))
+        throw new InvalidOperationException("Jwt:Secret must be configured for non-Development environments.");
 }
 
 // ----- JSON -----
@@ -64,6 +78,16 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "A RESTful API for managing tasks — create, read, update, delete, and filter by status."
     });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter your JWT token"
+    });
 });
 
 // ----- CORS -----
@@ -76,6 +100,37 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// ----- Authentication & Authorization -----
+var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+jwtSettings.Secret = jwtSecret;
+builder.Services.Configure<JwtSettings>(opt =>
+{
+    opt.Secret = jwtSecret;
+    opt.Issuer = jwtSettings.Issuer;
+    opt.Audience = jwtSettings.Audience;
+    opt.ExpirationInMinutes = jwtSettings.ExpirationInMinutes;
+});
+
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // ----- Global Exception Handling -----
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -108,6 +163,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapAuthEndpoints();
 app.MapTasksEndpoints();
 
 app.Run();

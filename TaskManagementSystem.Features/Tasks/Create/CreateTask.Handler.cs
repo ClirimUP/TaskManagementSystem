@@ -23,7 +23,8 @@ public class CreateTaskHandler : IRequestHandler<CreateTaskCommand, Result<TaskR
             Priority = request.Priority ?? Priority.Medium,
             DueDate = request.DueDate,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            UserId = request.UserId
         };
 
         _db.Tasks.Add(task);

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -10,9 +11,10 @@ public static class DeleteTaskEndpoint
 {
     public static RouteGroupBuilder MapDeleteTask(this RouteGroupBuilder group)
     {
-        group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
+        group.MapDelete("/{id:guid}", async (Guid id, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new DeleteTaskCommand(id), ct);
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await mediator.Send(new DeleteTaskCommand(id, userId), ct);
 
             return result.IsSuccess
                 ? Results.NoContent()

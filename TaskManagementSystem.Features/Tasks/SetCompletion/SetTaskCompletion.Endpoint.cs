@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,9 +12,10 @@ public static class SetTaskCompletionEndpoint
 {
     public static RouteGroupBuilder MapSetTaskCompletion(this RouteGroupBuilder group)
     {
-        group.MapPatch("/{id:guid}/complete", async (Guid id, SetCompletionRequest request, IMediator mediator, CancellationToken ct) =>
+        group.MapPatch("/{id:guid}/complete", async (Guid id, SetCompletionRequest request, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
-            var command = new SetTaskCompletionCommand(id, request.IsCompleted);
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var command = new SetTaskCompletionCommand(id, request.IsCompleted, userId);
             var result = await mediator.Send(command, ct);
 
             return result.IsSuccess

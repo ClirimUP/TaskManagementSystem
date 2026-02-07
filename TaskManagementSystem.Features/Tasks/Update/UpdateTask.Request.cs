@@ -10,7 +10,8 @@ public record UpdateTaskCommand(
     string Title,
     string? Description,
     Priority? Priority,
-    DateTime? DueDate) : IRequest<Result<TaskResponse>>;
+    DateTime? DueDate,
+    Guid UserId) : IRequest<Result<TaskResponse>>;
 
 public record UpdateTaskRequest(
     string Title,

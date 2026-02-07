@@ -3,4 +3,4 @@ using TaskManagementSystem.Domain.Common;
 
 namespace TaskManagementSystem.Features.Tasks.Delete;
 
-public record DeleteTaskCommand(Guid Id) : IRequest<Result>;
+public record DeleteTaskCommand(Guid Id, Guid UserId) : IRequest<Result>;

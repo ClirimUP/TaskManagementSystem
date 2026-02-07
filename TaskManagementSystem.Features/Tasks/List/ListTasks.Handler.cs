@@ -13,7 +13,9 @@ public class ListTasksHandler : IRequestHandler<ListTasksQuery, List<TaskRespons
 
     public async Task<List<TaskResponse>> Handle(ListTasksQuery request, CancellationToken cancellationToken)
     {
-        var query = _db.Tasks.AsNoTracking().AsQueryable();
+        var query = _db.Tasks.AsNoTracking()
+            .Where(t => t.UserId == request.UserId)
+            .AsQueryable();
 
         query = request.Status switch
         {

@@ -14,6 +14,7 @@ public static class ResultExtensions
             "NotFound" => StatusCodes.Status404NotFound,
             "Validation" => StatusCodes.Status400BadRequest,
             "Conflict" => StatusCodes.Status409Conflict,
+            "Unauthorized" => StatusCodes.Status401Unauthorized,
             _ => StatusCodes.Status500InternalServerError
         };
 

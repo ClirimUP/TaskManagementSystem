@@ -13,7 +13,7 @@ public class DeleteTaskHandler : IRequestHandler<DeleteTaskCommand, Result>
 
     public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == request.Id && t.UserId == request.UserId, cancellationToken);
 
         if (task is null)
             return Result.Failure(Error.NotFound($"Task with ID '{request.Id}' was not found."));

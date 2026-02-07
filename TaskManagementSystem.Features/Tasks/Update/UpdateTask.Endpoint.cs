@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,9 +12,10 @@ public static class UpdateTaskEndpoint
 {
     public static RouteGroupBuilder MapUpdateTask(this RouteGroupBuilder group)
     {
-        group.MapPut("/{id:guid}", async (Guid id, UpdateTaskRequest request, IMediator mediator, CancellationToken ct) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateTaskRequest request, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
-            var command = new UpdateTaskCommand(id, request.Title, request.Description, request.Priority, request.DueDate);
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var command = new UpdateTaskCommand(id, request.Title, request.Description, request.Priority, request.DueDate, userId);
             var result = await mediator.Send(command, ct);
 
             return result.IsSuccess

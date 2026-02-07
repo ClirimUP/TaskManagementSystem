@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,9 +12,10 @@ public static class GetTaskByIdEndpoint
 {
     public static RouteGroupBuilder MapGetTaskById(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
+        group.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal user, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new GetTaskByIdQuery(id), ct);
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await mediator.Send(new GetTaskByIdQuery(id, userId), ct);
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)
