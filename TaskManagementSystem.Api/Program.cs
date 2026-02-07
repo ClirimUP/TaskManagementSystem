@@ -10,15 +10,40 @@ using TaskManagementSystem.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ----- Configuration validation -----
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var corsOrigin = builder.Configuration.GetValue<string>("Cors:AllowedOrigin");
+
+if (builder.Environment.IsDevelopment())
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = "Data Source=taskmanagement.db";
+        Log.Startup(builder, "ConnectionStrings:DefaultConnection is not configured. Using default: \"{Value}\"", connectionString);
+    }
+
+    if (string.IsNullOrWhiteSpace(corsOrigin))
+    {
+        corsOrigin = "http://localhost:5173";
+        Log.Startup(builder, "Cors:AllowedOrigin is not configured. Using default: \"{Value}\"", corsOrigin);
+    }
+}
+else
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured for non-Development environments.");
+
+    if (string.IsNullOrWhiteSpace(corsOrigin))
+        throw new InvalidOperationException("Cors:AllowedOrigin must be configured for non-Development environments.");
+}
+
 // ----- JSON -----
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // ----- Database -----
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=taskmanagement.db"));
+    options.UseSqlite(connectionString));
 
 // ----- MediatR + Pipeline -----
 builder.Services.AddMediatR(cfg =>
@@ -46,8 +71,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration.GetValue<string>("Cors:AllowedOrigin") ?? "http://localhost:5173")
+        policy.WithOrigins(corsOrigin)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -60,6 +84,8 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 
 // ----- Auto-apply migrations in Development -----
+// Non-Development environments require manual migration: run 'dotnet ef database update'
+// or set ASPNETCORE_ENVIRONMENT=Development to enable auto-migration.
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -85,3 +111,14 @@ app.UseCors("AllowFrontend");
 app.MapTasksEndpoints();
 
 app.Run();
+
+// ----- Startup logging helper -----
+internal static class Log
+{
+    internal static void Startup(WebApplicationBuilder builder, string message, string value)
+    {
+        using var loggerFactory = LoggerFactory.Create(b => b.AddConfiguration(builder.Configuration.GetSection("Logging")).AddConsole());
+        var logger = loggerFactory.CreateLogger("Startup");
+        logger.LogWarning(message, value);
+    }
+}
