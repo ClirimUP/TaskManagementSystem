@@ -11,10 +11,10 @@ public static class UpdateTaskEndpoint
 {
     public static RouteGroupBuilder MapUpdateTask(this RouteGroupBuilder group)
     {
-        group.MapPut("/{id:guid}", async (Guid id, UpdateTaskRequest request, IMediator mediator) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateTaskRequest request, IMediator mediator, CancellationToken ct) =>
         {
             var command = new UpdateTaskCommand(id, request.Title, request.Description, request.Priority, request.DueDate);
-            var result = await mediator.Send(command);
+            var result = await mediator.Send(command, ct);
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)

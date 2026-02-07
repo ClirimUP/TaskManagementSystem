@@ -11,10 +11,10 @@ public static class SetTaskCompletionEndpoint
 {
     public static RouteGroupBuilder MapSetTaskCompletion(this RouteGroupBuilder group)
     {
-        group.MapPatch("/{id:guid}/complete", async (Guid id, SetCompletionRequest request, IMediator mediator) =>
+        group.MapPatch("/{id:guid}/complete", async (Guid id, SetCompletionRequest request, IMediator mediator, CancellationToken ct) =>
         {
             var command = new SetTaskCompletionCommand(id, request.IsCompleted);
-            var result = await mediator.Send(command);
+            var result = await mediator.Send(command, ct);
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)

@@ -11,9 +11,9 @@ public static class CreateTaskEndpoint
 {
     public static RouteGroupBuilder MapCreateTask(this RouteGroupBuilder group)
     {
-        group.MapPost("/", async (CreateTaskCommand command, IMediator mediator) =>
+        group.MapPost("/", async (CreateTaskCommand command, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(command);
+            var result = await mediator.Send(command, ct);
 
             return result.IsSuccess
                 ? Results.Created($"/api/tasks/{result.Value!.Id}", result.Value)

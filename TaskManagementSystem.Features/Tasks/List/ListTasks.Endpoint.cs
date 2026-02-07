@@ -10,9 +10,9 @@ public static class ListTasksEndpoint
 {
     public static RouteGroupBuilder MapListTasks(this RouteGroupBuilder group)
     {
-        group.MapGet("/", async (TaskStatusFilter? status, IMediator mediator) =>
+        group.MapGet("/", async (TaskStatusFilter? status, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new ListTasksQuery(status));
+            var result = await mediator.Send(new ListTasksQuery(status), ct);
             return Results.Ok(result);
         })
         .WithName("ListTasks")

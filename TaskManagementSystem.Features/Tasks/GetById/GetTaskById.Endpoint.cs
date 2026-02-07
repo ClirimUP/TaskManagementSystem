@@ -11,9 +11,9 @@ public static class GetTaskByIdEndpoint
 {
     public static RouteGroupBuilder MapGetTaskById(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}", async (Guid id, IMediator mediator) =>
+        group.MapGet("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new GetTaskByIdQuery(id));
+            var result = await mediator.Send(new GetTaskByIdQuery(id), ct);
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)

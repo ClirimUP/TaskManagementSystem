@@ -10,9 +10,9 @@ public static class DeleteTaskEndpoint
 {
     public static RouteGroupBuilder MapDeleteTask(this RouteGroupBuilder group)
     {
-        group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator) =>
+        group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
         {
-            var result = await mediator.Send(new DeleteTaskCommand(id));
+            var result = await mediator.Send(new DeleteTaskCommand(id), ct);
 
             return result.IsSuccess
                 ? Results.NoContent()
